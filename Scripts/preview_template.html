@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starbucks Drinks Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f3f8f5;
+    --panel: #ffffff;
+    --ink: #17302a;
+    --muted: #51675f;
+    --green: #00704a;
+    --deep: #1e3932;
+    --line: #d3e2db;
+    --soft: #e8f1ec;
+    --focus: #0a8f5f;
+    --btn-ink: #ffffff;
+    --carb: #00704a;
+    --fat: #d9a52b;
+    --prot: #c4572b;
+    --ease: cubic-bezier(.65, 0, .25, 1);
+    --serif: "DM Serif Display", Georgia, "Times New Roman", serif;
+    --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0e1916; --panel: #15241f; --ink: #e5f0eb; --muted: #9db4aa;
+      --green: #3fbf8c; --deep: #cfe6dc; --line: #28403a; --soft: #1b2e28;
+      --focus: #5fd9a8; --btn-ink: #0e1916; --carb: #3fbf8c; --fat: #e0b341; --prot: #e07b52;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.55; font-variant-numeric: tabular-nums; }
+  a { color: var(--green); text-underline-offset: 3px; }
+  button, select, input { font: inherit; color: inherit; }
+  a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
+  [hidden] { display: none !important; }
+
+  /* Header */
+  header.top { padding: 44px 0 20px; }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(2.3rem, 5.5vw, 3.9rem); line-height: 1.04; letter-spacing: -0.01em; margin: 0 0 14px; color: var(--deep); }
+  h1 .ln { display: block; }
+  .lead { max-width: 62ch; font-size: 1.1rem; color: var(--muted); margin: 0 0 12px; }
+  .badge { display: inline-block; margin: 0; padding: 3px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: .85rem; color: var(--muted); }
+  .notice { margin: 14px 0 0; max-width: 90ch; padding: 10px 14px; border-left: 4px solid var(--fat); background: var(--panel); border-radius: 0 8px 8px 0; font-size: .9rem; color: var(--muted); }
+  .notice code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85em; color: var(--ink); }
+
+  /* Layout */
+  .lab {
+    display: grid; gap: 20px; align-items: start; padding: 12px 0 8px;
+    grid-template-columns: 250px minmax(0, 1fr) 340px;
+    grid-template-areas: "filters plot detail" "filters pair detail";
+  }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .card h2 { font-family: var(--serif); font-weight: 400; font-size: 1.4rem; line-height: 1.2; margin: 0 0 4px; color: var(--deep); }
+  .sub { margin: 0 0 12px; font-size: .875rem; color: var(--muted); }
+  .filters { grid-area: filters; }
+  .plot { grid-area: plot; }
+  .pair { grid-area: pair; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .detail { grid-area: detail; }
+  @media (min-height: 800px) and (min-width: 1181px) { .filters { position: sticky; top: 16px; } }
+
+  /* Filters */
+  .filters h2 { font-size: 1.25rem; }
+  .count { margin: 0 0 14px; font-size: .9rem; color: var(--muted); }
+  .count b { color: var(--deep); font-size: 1.3rem; font-weight: 600; }
+  .field { margin: 0 0 16px; }
+  .field > label, .field > .lbl { display: block; font-size: .85rem; font-weight: 600; color: var(--deep); margin-bottom: 6px; }
+  .search { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 150px; overflow: auto; padding: 2px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: .825rem; cursor: pointer; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); transition: background .2s, border-color .2s, color .2s; }
+  .chip i { width: 9px; height: 9px; border-radius: 50%; display: block; }
+  .chip small { color: var(--muted); font-size: .75rem; }
+  .chip:hover { border-color: var(--green); }
+  .chip[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: var(--btn-ink); }
+  .chip[aria-pressed="true"] small { color: inherit; opacity: .85; }
+  .slider-row { display: flex; justify-content: space-between; align-items: baseline; font-size: .85rem; }
+  .slider-row output { color: var(--muted); font-size: .8rem; }
+  input[type=range] { width: 100%; accent-color: var(--green); margin: 4px 0 0; }
+  .btn { cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 14px; font-size: .9rem; font-weight: 500; transition: background .2s, border-color .2s, color .2s; }
+  .btn:hover { border-color: var(--green); color: var(--green); }
+  .btn.primary { background: var(--green); border-color: var(--green); color: var(--btn-ink); }
+  .btn.primary:hover { background: var(--deep); border-color: var(--deep); color: var(--btn-ink); }
+  .btn:disabled { opacity: .5; cursor: default; }
+
+  /* Plot */
+  .plot-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: end; justify-content: space-between; margin-bottom: 10px; }
+  .axes { display: flex; flex-wrap: wrap; gap: 10px; }
+  .axes label { font-size: .8rem; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+  select { padding: 6px 28px 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); cursor: pointer; }
+  .plotwrap { position: relative; }
+  .plotwrap svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .grid line { stroke: var(--line); stroke-width: 1; }
+  .axis text { fill: var(--muted); font-size: 11px; font-family: var(--sans); }
+  .axis .title { font-size: 12px; fill: var(--ink); font-weight: 500; }
+  .pt { opacity: .78; transition: transform .75s var(--ease), opacity .35s ease; cursor: pointer; }
+  .pt.pre { opacity: 0; }
+  .pt.off { opacity: .06; pointer-events: none; }
+  .pt:hover { opacity: 1; stroke: var(--ink); stroke-width: 1.5; }
+  .selg { transition: transform .75s var(--ease), opacity .3s ease; pointer-events: none; }
+  .sel { fill: none; stroke: var(--ink); stroke-width: 2.4; }
+  .mean line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 4 4; opacity: .55; }
+  .mean { transition: transform .75s var(--ease), opacity .3s; }
+  .mean text { fill: var(--muted); font-size: 10.5px; font-family: var(--sans); }
+  .tip { position: absolute; z-index: 5; pointer-events: none; background: var(--deep); color: var(--paper); padding: 8px 10px; border-radius: 8px; font-size: .8rem; line-height: 1.4; max-width: 220px; opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .15s; }
+  .tip.on { opacity: 1; transform: none; }
+  .tip b { display: block; font-size: .85rem; }
+
+  /* Rank and mix */
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: var(--paper); padding: 5px 12px; cursor: pointer; font-size: .8rem; }
+  .seg button[aria-pressed="true"] { background: var(--green); color: var(--btn-ink); }
+  .rank-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .rrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name val" "bar bar"; gap: 2px 10px; width: 100%; text-align: left; padding: 7px 8px; margin: 0 -8px; width: calc(100% + 16px); background: none; border: 0; border-radius: 8px; cursor: pointer; transition: background .2s; }
+  .rrow:hover, .rrow[aria-current="true"] { background: var(--soft); }
+  .rname { grid-area: name; min-width: 0; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rname i { font-style: normal; color: var(--muted); font-size: .8rem; margin-left: 6px; }
+  .rval { grid-area: val; font-weight: 600; font-size: .9rem; }
+  .rtrack { grid-area: bar; height: 8px; background: var(--soft); border-radius: 4px; overflow: hidden; }
+  .rbar { display: block; height: 100%; width: 100%; transform-origin: 0 50%; transition: transform .6s var(--ease); border-radius: 4px; }
+  .empty { color: var(--muted); font-size: .9rem; margin: 8px 0 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8rem; color: var(--muted); margin-bottom: 10px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 2px; display: block; }
+  .mrow { display: grid; grid-template-columns: 96px minmax(0, 1fr) 62px; gap: 10px; align-items: center; width: calc(100% + 16px); margin: 0 -8px; padding: 6px 8px; text-align: left; background: none; border: 0; border-radius: 8px; cursor: pointer; transition: background .2s; }
+  .mrow:hover, .mrow.on { background: var(--soft); }
+  .mname { font-size: .85rem; display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .mname i { flex: none; width: 9px; height: 9px; border-radius: 50%; display: block; }
+  .mname span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stack { display: flex; height: 14px; border-radius: 4px; overflow: hidden; background: var(--soft); }
+  .stack span { display: block; height: 100%; width: 0; transition: width .6s var(--ease); }
+  .mval { font-size: .8rem; color: var(--muted); text-align: right; }
+
+  /* Detail */
+  .d-cat { margin: 0 0 2px; font-size: .8rem; color: var(--muted); }
+  .detail h2 { font-size: 1.6rem; }
+  .d-flag { margin: 0 0 6px; font-size: .8rem; color: var(--prot); min-height: 1.2em; }
+  .d-top { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; }
+  .cup { width: 100%; height: auto; display: block; }
+  .cup .outline { fill: none; stroke: var(--deep); stroke-width: 3; stroke-linejoin: round; }
+  .cup .lid { fill: var(--deep); }
+  .cup .straw { stroke: #1fa36a; stroke-width: 6; stroke-linecap: round; opacity: .9; }
+  .cup .layer { transform: translateY(210px); transition: transform .9s var(--ease); }
+  .cal { font-family: var(--serif); font-size: 3.1rem; line-height: 1; color: var(--deep); }
+  .cal small { font-family: var(--sans); font-size: .9rem; color: var(--muted); margin-left: 4px; }
+  .calpct { margin: 4px 0 10px; font-size: .8rem; color: var(--muted); }
+  .macros { list-style: none; margin: 0; padding: 0; font-size: .85rem; }
+  .macros li { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+  .macros i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; }
+  .meter { margin: 16px 0 0; }
+  .meter-head { display: flex; justify-content: space-between; font-size: .85rem; margin-bottom: 4px; }
+  .meter-head b { font-weight: 600; color: var(--deep); }
+  .track { height: 10px; background: var(--soft); border-radius: 5px; overflow: hidden; }
+  .fill { display: block; height: 100%; width: 100%; border-radius: 5px; background: var(--green); transform-origin: 0 50%; transform: scaleX(0); transition: transform .8s var(--ease); }
+  .meter-note { margin: 4px 0 0; font-size: .75rem; color: var(--muted); }
+  .vits { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 14px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  .stat { background: var(--soft); border-radius: 8px; padding: 8px 10px; }
+  .stat span { display: block; font-size: .75rem; color: var(--muted); }
+  .stat b { font-size: 1.05rem; font-weight: 600; }
+  .stat em { display: block; font-style: normal; font-size: .72rem; color: var(--muted); }
+  .d-nav { display: flex; gap: 8px; margin-top: 18px; }
+  .d-nav .btn { flex: 1; padding: 7px 8px; }
+  .d-nav .btn.primary { flex: 1.6; }
+
+  /* About */
+  .about { margin-top: 28px; padding: 28px 0 8px; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
+  .about h2 { font-family: var(--serif); font-weight: 400; font-size: 1.5rem; margin: 0 0 8px; color: var(--deep); }
+  .about p { margin: 0 0 8px; max-width: 60ch; color: var(--muted); font-size: .95rem; }
+  .about code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85em; color: var(--ink); }
+  footer { padding: 18px 0 48px; font-size: .9rem; color: var(--muted); }
+  noscript p { padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+
+  /* Entrance (JS only) */
+  .js h1 .ln { overflow: hidden; padding-bottom: .08em; }
+  .js h1 .ln > span { display: block; transform: translateY(108%); }
+  .js.ready h1 .ln > span { transform: none; transition: transform .9s cubic-bezier(.2, .8, .2, 1); }
+  .js.ready h1 .ln:nth-child(2) > span { transition-delay: .09s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .js h1 .ln > span { transform: none !important; transition: none !important; }
+    .pt, .selg, .mean, .fill, .rbar, .stack span, .cup .layer, .tip, .chip, .rrow, .mrow { transition: none !important; }
+  }
+
+  @media (max-width: 1180px) {
+    .lab { grid-template-columns: minmax(0, 1fr) 340px; grid-template-areas: "filters filters" "plot detail" "pair detail"; }
+    .filters { position: static !important; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0 24px; }
+    .filters > h2, .filters > .count, .filters > .actions { grid-column: 1 / -1; }
+    .chips { max-height: 110px; }
+  }
+  @media (max-width: 860px) {
+    .lab { grid-template-columns: minmax(0, 1fr); grid-template-areas: "filters" "plot" "detail" "pair"; }
+    .pair { grid-template-columns: minmax(0, 1fr); }
+    .about { grid-template-columns: 1fr; gap: 20px; }
+    .wrap { padding: 0 16px; }
+    header.top { padding-top: 30px; }
+  }
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js');</script>
+<div class="wrap">
+  <header class="top">
+    <h1><span class="ln"><span>Starbucks Drinks</span></span><span class="ln"><span>Explorer</span></span></h1>
+    <p class="lead">Filter the menu, plot any two nutrients against each other, and open a drink to see what is in the cup.</p>
+    <p class="badge" id="badge"></p>
+    <p class="notice" id="notice" hidden><strong>Sample data.</strong> This preview runs on the random dataset from <code>Scripts/dummy_data_generator.py</code>, so the patterns are noise and some drink and category pairings are nonsense. Rebuild it from the real dataset with <code>python Scripts/build_preview.py</code>.</p>
+  </header>
+
+  <noscript><p>This preview needs JavaScript to draw its charts.</p></noscript>
+
+  <main class="lab">
+    <aside class="card filters" aria-label="Filters">
+      <h2>Filter drinks</h2>
+      <p class="count">Showing <b id="count">0</b> of <span id="total">0</span> drinks</p>
+
+      <div class="field">
+        <label for="q">Search by name</label>
+        <input class="search" id="q" type="search" placeholder="Latte, mocha, tea..." autocomplete="off">
+      </div>
+      <div class="field" id="catField">
+        <span class="lbl" id="catLbl">Category</span>
+        <div class="chips" id="cats" role="group" aria-labelledby="catLbl"></div>
+      </div>
+      <div class="field" id="prepField">
+        <span class="lbl" id="prepLbl">Preparation</span>
+        <div class="chips" id="preps" role="group" aria-labelledby="prepLbl"></div>
+      </div>
+      <div class="field" id="calField">
+        <div class="slider-row"><label for="cal">Calories</label><output id="calOut"></output></div>
+        <input type="range" id="cal">
+      </div>
+      <div class="field" id="cafField">
+        <div class="slider-row"><label for="caf">Caffeine</label><output id="cafOut"></output></div>
+        <input type="range" id="caf">
+      </div>
+      <div class="field" id="sugField">
+        <div class="slider-row"><label for="sug">Sugars</label><output id="sugOut"></output></div>
+        <input type="range" id="sug">
+      </div>
+      <div class="actions"><button class="btn" id="reset" type="button">Reset filters</button></div>
+    </aside>
+
+    <section class="card plot" aria-label="Scatter plot">
+      <div class="plot-head">
+        <div>
+          <h2>Compare two nutrients</h2>
+          <p class="sub" style="margin:0">Each dot is one drink, coloured by category. Dashed lines mark the average of the drinks shown.</p>
+        </div>
+        <div class="axes">
+          <label>Horizontal axis<select id="xSel"></select></label>
+          <label>Vertical axis<select id="ySel"></select></label>
+        </div>
+      </div>
+      <div class="plotwrap" id="plotwrap">
+        <svg id="plot" viewBox="0 0 760 440" role="img" aria-label="Scatter plot of drinks"></svg>
+        <div class="tip" id="tip" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <div class="pair">
+      <section class="card" aria-label="Rankings">
+        <h2 id="rankTitle">Top 5</h2>
+        <p class="sub">Among the drinks shown. Select a row to open it.</p>
+        <div class="rank-tools">
+          <label class="sr" for="rankSel" style="position:absolute;left:-9999px">Rank by</label>
+          <select id="rankSel"></select>
+          <div class="seg" role="group" aria-label="Order">
+            <button type="button" id="hi" aria-pressed="true">Highest</button>
+            <button type="button" id="lo" aria-pressed="false">Lowest</button>
+          </div>
+        </div>
+        <div id="rank"></div>
+        <p class="empty" id="rankEmpty" hidden>No drinks match the current filters.</p>
+      </section>
+
+      <section class="card" aria-label="Nutrient mix by category">
+        <h2>Mix by category</h2>
+        <p class="sub">Average grams per drink. Select a category to filter by it.</p>
+        <div class="legend"><span><i style="background:var(--carb)"></i>Carbs</span><span><i style="background:var(--fat)"></i>Fat</span><span><i style="background:var(--prot)"></i>Protein</span></div>
+        <div id="mix"></div>
+        <p class="empty" id="mixEmpty" hidden>No drinks match the current filters.</p>
+      </section>
+    </div>
+
+    <section class="card detail" aria-label="Selected drink" aria-live="polite">
+      <p class="d-cat" id="dCat"></p>
+      <h2 id="dName">Pick a drink</h2>
+      <p class="d-flag" id="dFlag"></p>
+      <div class="d-top">
+        <svg class="cup" viewBox="0 0 160 200" role="img" aria-label="Cup filled according to carbohydrate, fat and protein grams">
+          <defs><clipPath id="cupClip"><path d="M22 36 L138 36 L126 176 Q124.5 188 112 188 L48 188 Q35.5 188 34 176 Z"/></clipPath></defs>
+          <g clip-path="url(#cupClip)">
+            <rect class="layer" id="layP" x="0" y="0" width="160" height="200" fill="var(--prot)"/>
+            <rect class="layer" id="layF" x="0" y="0" width="160" height="200" fill="var(--fat)"/>
+            <rect class="layer" id="layC" x="0" y="0" width="160" height="200" fill="var(--carb)"/>
+          </g>
+          <line class="straw" x1="104" y1="6" x2="94" y2="120"/>
+          <path class="outline" d="M22 36 L138 36 L126 176 Q124.5 188 112 188 L48 188 Q35.5 188 34 176 Z"/>
+          <rect class="lid" x="15" y="25" width="130" height="12" rx="5"/>
+        </svg>
+        <div>
+          <div class="cal"><span id="dCal">0</span><small>kcal</small></div>
+          <p class="calpct" id="dPct"></p>
+          <ul class="macros">
+            <li><span><i style="background:var(--carb)"></i>Carbs</span><b id="lgC">0 g</b></li>
+            <li><span><i style="background:var(--fat)"></i>Fat</span><b id="lgF">0 g</b></li>
+            <li><span><i style="background:var(--prot)"></i>Protein</span><b id="lgP">0 g</b></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="meter" id="cafMeter">
+        <div class="meter-head"><span>Caffeine</span><b id="cafVal"></b></div>
+        <div class="track"><span class="fill" id="cafFill"></span></div>
+        <p class="meter-note" id="cafNote"></p>
+      </div>
+      <div class="vits" id="vits"></div>
+      <div class="stats" id="stats"></div>
+
+      <div class="d-nav">
+        <button class="btn" id="prevBtn" type="button" aria-label="Previous drink">Prev</button>
+        <button class="btn primary" id="rndBtn" type="button">Surprise me</button>
+        <button class="btn" id="nextBtn" type="button" aria-label="Next drink">Next</button>
+      </div>
+    </section>
+  </main>
+
+  <section class="about">
+    <div>
+      <h2>How this preview is built</h2>
+      <p>One HTML file with no chart libraries. <code>Scripts/build_preview.py</code> reads <code>Data/beverages_data.csv</code> and embeds it as JSON, so the preview always matches the data in the repository.</p>
+      <p>The full Power BI report is in <code>Dashboard.pbix</code>, and screenshots of each page are in the <code>Previews</code> folder.</p>
+    </div>
+    <div>
+      <h2>Notes</h2>
+      <p>This is an independent portfolio project and is not affiliated with or endorsed by Starbucks.</p>
+      <p>The 400 mg caffeine marker is the commonly cited daily guideline for healthy adults, and calories are compared with a 2,000 kcal reference day.</p>
+    </div>
+  </section>
+
+  <footer>
+    Built by Shubham Adate.
+    <a href="https://www.linkedin.com/in/adate-shubham">LinkedIn</a> and
+    <a href="https://github.com/shubhamadatework-git">GitHub</a>.
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var PAYLOAD = __PAYLOAD__;
+
+  var root = document.documentElement;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var NS = 'http://www.w3.org/2000/svg';
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function sv(tag, attrs) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+  function isNum(v) { return typeof v === 'number' && isFinite(v); }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  /* ---------- Data ---------- */
+  var KEYS = PAYLOAD.cols;
+  var D = PAYLOAD.rows.map(function (r, i) { var o = { i: i }; for (var j = 0; j < KEYS.length; j++) o[KEYS[j]] = r[j]; return o; });
+  var N = D.length;
+  var META = PAYLOAD.meta || {};
+
+  var ALL = [
+    { k: 'calories', l: 'Calories', u: 'kcal' }, { k: 'caffeine', l: 'Caffeine', u: 'mg' },
+    { k: 'sugars', l: 'Sugars', u: 'g' }, { k: 'carbs', l: 'Carbohydrates', u: 'g' },
+    { k: 'totalFat', l: 'Total fat', u: 'g' }, { k: 'satFat', l: 'Saturated fat', u: 'g' },
+    { k: 'transFat', l: 'Trans fat', u: 'g' }, { k: 'protein', l: 'Protein', u: 'g' },
+    { k: 'fibre', l: 'Dietary fibre', u: 'g' }, { k: 'sodium', l: 'Sodium', u: 'mg' },
+    { k: 'cholesterol', l: 'Cholesterol', u: 'mg' }, { k: 'vitA', l: 'Vitamin A', u: '% DV' },
+    { k: 'vitC', l: 'Vitamin C', u: '% DV' }, { k: 'calcium', l: 'Calcium', u: '% DV' },
+    { k: 'iron', l: 'Iron', u: '% DV' }
+  ];
+  var MK = {}, S = {};
+  var METRICS = ALL.filter(function (m) {
+    var mn = Infinity, mx = -Infinity;
+    for (var i = 0; i < N; i++) { var v = D[i][m.k]; if (isNum(v)) { if (v < mn) mn = v; if (v > mx) mx = v; } }
+    if (mn === Infinity) return false;
+    S[m.k] = { min: mn, max: mx }; MK[m.k] = m; return true;
+  });
+  function fmt(v, k) {
+    if (!isNum(v)) return 'n/a';
+    var m = MK[k], dec = (m && m.u === 'g' && Math.abs(v - Math.round(v)) > 1e-9) ? 1 : 0;
+    return v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  }
+  function withUnit(v, k) { var u = MK[k] ? MK[k].u : ''; return fmt(v, k) + (u ? ' ' + u : ''); }
+
+  function uniq(key) { var c = {}; D.forEach(function (d) { var v = d[key]; if (v != null && v !== '') c[v] = (c[v] || 0) + 1; }); return c; }
+  var CATS = uniq('category'), PREPS = uniq('prep');
+  var catNames = Object.keys(CATS).sort(), prepNames = Object.keys(PREPS).sort();
+  var PAL = ['#00704a', '#c9a227', '#c4572b', '#3b7ea1', '#8a5a9b', '#6c9a2f', '#b04a6b', '#4d5d6b', '#d08a3a', '#2f9e9e'];
+  var COL = {}; catNames.forEach(function (c, i) { COL[c] = PAL[i % PAL.length]; });
+  function colorOf(d) { return COL[d.category] || '#4d5d6b'; }
+
+  /* ---------- State ---------- */
+  var F = { q: '', cats: {}, preps: {}, cal: MK.calories ? S.calories.max : 0, caf: MK.caffeine ? S.caffeine.min : 0, sug: MK.sugars ? S.sugars.max : 0 };
+  var X = MK.calories ? 'calories' : METRICS[0].k;
+  var Y = MK.caffeine ? 'caffeine' : (METRICS[1] || METRICS[0]).k;
+  var RK = MK.caffeine ? 'caffeine' : X, RDIR = 'high';
+  var sel = -1, vis = new Array(N), list = [];
+
+  /* ---------- Header ---------- */
+  $('badge').textContent = 'Data: ' + (META.source || 'beverages_data.csv') + ', ' + N.toLocaleString('en-US') + ' drinks';
+  if (META.synthetic) $('notice').hidden = false;
+  $('total').textContent = N.toLocaleString('en-US');
+
+  /* ---------- Filters UI ---------- */
+  function anyKey(o) { for (var k in o) return true; return false; }
+
+  function buildChips(box, names, counts, store, withColor) {
+    names.forEach(function (n) {
+      var b = el('button', 'chip'); b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+      if (withColor) { var dot = el('i'); dot.style.background = COL[n]; b.appendChild(dot); }
+      b.appendChild(document.createTextNode(n));
+      b.appendChild(el('small', null, counts[n]));
+      b.addEventListener('click', function () {
+        if (store[n]) delete store[n]; else store[n] = true;
+        syncChips(); refresh();
+      });
+      b.dataset.name = n; box.appendChild(b);
+    });
+  }
+  function syncChips() {
+    Array.prototype.forEach.call($('cats').children, function (b) { b.setAttribute('aria-pressed', F.cats[b.dataset.name] ? 'true' : 'false'); });
+    Array.prototype.forEach.call($('preps').children, function (b) { b.setAttribute('aria-pressed', F.preps[b.dataset.name] ? 'true' : 'false'); });
+    Array.prototype.forEach.call($('mix').children, function (b) { b.classList.toggle('on', !!F.cats[b.dataset.name]); });
+  }
+  if (catNames.length) buildChips($('cats'), catNames, CATS, F.cats, true); else $('catField').hidden = true;
+  if (prepNames.length) buildChips($('preps'), prepNames, PREPS, F.preps, false); else $('prepField').hidden = true;
+
+  function setupSlider(id, outId, metric, init, text, fieldId) {
+    var r = $(id);
+    if (!MK[metric]) { $(fieldId).hidden = true; return; }
+    r.min = Math.floor(S[metric].min); r.max = Math.ceil(S[metric].max); r.step = 1; r.value = init;
+    r.addEventListener('input', function () { text(+r.value); refresh(); });
+    text(+r.value, true);
+  }
+  setupSlider('cal', 'calOut', 'calories', F.cal, function (v) { F.cal = v; $('calOut').textContent = v >= Math.ceil(S.calories.max) ? 'no limit' : 'up to ' + v + ' kcal'; }, 'calField');
+  setupSlider('caf', 'cafOut', 'caffeine', F.caf, function (v) { F.caf = v; $('cafOut').textContent = v <= Math.floor(S.caffeine.min) ? 'no minimum' : 'at least ' + v + ' mg'; }, 'cafField');
+  setupSlider('sug', 'sugOut', 'sugars', F.sug, function (v) { F.sug = v; $('sugOut').textContent = v >= Math.ceil(S.sugars.max) ? 'no limit' : 'up to ' + v + ' g'; }, 'sugField');
+  $('q').addEventListener('input', function (e) { F.q = e.target.value.trim().toLowerCase(); refresh(); });
+  $('reset').addEventListener('click', function () {
+    F.q = ''; $('q').value = ''; F.cats = {}; F.preps = {};
+    if (MK.calories) { $('cal').value = $('cal').max; F.cal = +$('cal').max; $('calOut').textContent = 'no limit'; }
+    if (MK.caffeine) { $('caf').value = $('caf').min; F.caf = +$('caf').min; $('cafOut').textContent = 'no minimum'; }
+    if (MK.sugars) { $('sug').value = $('sug').max; F.sug = +$('sug').max; $('sugOut').textContent = 'no limit'; }
+    syncChips(); refresh();
+  });
+
+  function passes(d) {
+    if (F.q && String(d.beverage || '').toLowerCase().indexOf(F.q) < 0) return false;
+    if (anyKey(F.cats) && !F.cats[d.category]) return false;
+    if (anyKey(F.preps) && !F.preps[d.prep]) return false;
+    if (MK.calories && F.cal < Math.ceil(S.calories.max) && !(d.calories <= F.cal)) return false;
+    if (MK.caffeine && F.caf > Math.floor(S.caffeine.min) && !(d.caffeine >= F.caf)) return false;
+    if (MK.sugars && F.sug < Math.ceil(S.sugars.max) && !(d.sugars <= F.sug)) return false;
+    return true;
+  }
+
+  /* ---------- Scatter plot ---------- */
+  var W = 760, H = 440, M = { l: 60, r: 20, t: 18, b: 50 };
+  var xMax = 1, yMax = 1;
+  var plot = $('plot');
+  var gGrid = sv('g', { 'class': 'grid' }), gAxis = sv('g', { 'class': 'axis' });
+  var gMeanX = sv('g', { 'class': 'mean' }), gMeanY = sv('g', { 'class': 'mean' });
+  var gPts = sv('g', {});
+  var selg = sv('g', { 'class': 'selg' }), selc = sv('circle', { 'class': 'sel', r: 8, cx: 0, cy: 0 });
+  selg.appendChild(selc);
+  gMeanX.appendChild(sv('line', { x1: 0, x2: 0, y1: M.t, y2: H - M.b }));
+  var mxT = sv('text', { x: 4, y: M.t + 10 }); gMeanX.appendChild(mxT);
+  gMeanY.appendChild(sv('line', { x1: M.l, x2: W - M.r, y1: 0, y2: 0 }));
+  var myT = sv('text', { x: W - M.r - 2, y: -5, 'text-anchor': 'end' }); gMeanY.appendChild(myT);
+  [gGrid, gAxis, gMeanX, gMeanY, gPts, selg].forEach(function (g) { plot.appendChild(g); });
+
+  var pts = D.map(function (d) {
+    var c = sv('circle', { 'class': 'pt pre', r: 4.3, cx: 0, cy: 0, fill: colorOf(d), 'data-i': d.i });
+    gPts.appendChild(c); return c;
+  });
+
+  function niceStep(max, count) {
+    var raw = max / count, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+  }
+  function ticksFor(max) {
+    if (!(max > 0)) max = 1;
+    var step = niceStep(max, 5), top = Math.ceil(max / step - 1e-9) * step, t = [];
+    for (var v = 0; v <= top + step * 1e-6; v += step) t.push(+v.toFixed(6));
+    return { t: t, max: top };
+  }
+  function sx(v) { return M.l + (v / xMax) * (W - M.l - M.r); }
+  function sy(v) { return H - M.b - (v / yMax) * (H - M.t - M.b); }
+
+  function drawAxes() {
+    var tx = ticksFor(S[X].max), ty = ticksFor(S[Y].max);
+    xMax = tx.max; yMax = ty.max;
+    gGrid.innerHTML = ''; gAxis.innerHTML = '';
+    ty.t.forEach(function (v) {
+      gGrid.appendChild(sv('line', { x1: M.l, x2: W - M.r, y1: sy(v), y2: sy(v) }));
+      var t = sv('text', { x: M.l - 8, y: sy(v) + 4, 'text-anchor': 'end' }); t.textContent = fmt(v, Y); gAxis.appendChild(t);
+    });
+    tx.t.forEach(function (v) {
+      gGrid.appendChild(sv('line', { x1: sx(v), x2: sx(v), y1: M.t, y2: H - M.b }));
+      var t = sv('text', { x: sx(v), y: H - M.b + 18, 'text-anchor': 'middle' }); t.textContent = fmt(v, X); gAxis.appendChild(t);
+    });
+    var xl = sv('text', { 'class': 'title', x: (M.l + W - M.r) / 2, y: H - 8, 'text-anchor': 'middle' }); xl.textContent = MK[X].l + ' (' + MK[X].u + ')'; gAxis.appendChild(xl);
+    var yl = sv('text', { 'class': 'title', transform: 'translate(14,' + ((M.t + H - M.b) / 2) + ') rotate(-90)', 'text-anchor': 'middle' }); yl.textContent = MK[Y].l + ' (' + MK[Y].u + ')'; gAxis.appendChild(yl);
+    plot.setAttribute('aria-label', 'Scatter plot of ' + MK[Y].l + ' against ' + MK[X].l + ' for ' + list.length + ' drinks');
+  }
+  function pos(d) { return 'translate(' + sx(d[X]).toFixed(1) + 'px,' + sy(d[Y]).toFixed(1) + 'px)'; }
+  function updatePoints() {
+    for (var i = 0; i < N; i++) {
+      var d = D[i], ok = isNum(d[X]) && isNum(d[Y]);
+      if (ok) pts[i].style.transform = pos(d);
+      pts[i].classList.toggle('off', !(ok && vis[i]));
+    }
+    placeSel();
+  }
+  function updateMeans() {
+    var xs = 0, xn = 0, ys = 0, yn = 0;
+    list.forEach(function (d) { if (isNum(d[X])) { xs += d[X]; xn++; } if (isNum(d[Y])) { ys += d[Y]; yn++; } });
+    gMeanX.style.opacity = xn ? 1 : 0; gMeanY.style.opacity = yn ? 1 : 0;
+    if (xn) { var ax = xs / xn; gMeanX.style.transform = 'translate(' + sx(ax) + 'px,0px)'; mxT.textContent = 'avg ' + fmt(+ax.toFixed(1), X); mxT.setAttribute('text-anchor', sx(ax) > W - 120 ? 'end' : 'start'); mxT.setAttribute('x', sx(ax) > W - 120 ? -4 : 4); }
+    if (yn) { var ay = ys / yn; gMeanY.style.transform = 'translate(0px,' + sy(ay) + 'px)'; myT.textContent = 'avg ' + fmt(+ay.toFixed(1), Y); }
+  }
+  function placeSel() {
+    var d = sel >= 0 ? D[sel] : null;
+    if (!d || !isNum(d[X]) || !isNum(d[Y])) { selg.style.opacity = 0; return; }
+    selg.style.opacity = vis[sel] ? 1 : 0.35;
+    selg.style.transform = pos(d);
+  }
+  function pulseSel() {
+    if (reduce || !selc.animate) return;
+    selc.style.transformBox = 'fill-box'; selc.style.transformOrigin = 'center';
+    selc.animate([{ transform: 'scale(2.6)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  }
+
+  /* Tooltip and selection */
+  var tip = $('tip'), wrap = $('plotwrap');
+  plot.addEventListener('mouseover', function (e) {
+    var i = e.target.getAttribute && e.target.getAttribute('data-i'); if (i == null) return;
+    var d = D[+i];
+    tip.innerHTML = '';
+    tip.appendChild(el('b', null, d.beverage || 'Drink'));
+    tip.appendChild(document.createTextNode([d.prep, d.category].filter(Boolean).join(', ')));
+    tip.appendChild(document.createElement('br'));
+    tip.appendChild(document.createTextNode(MK[X].l + ': ' + withUnit(d[X], X)));
+    tip.appendChild(document.createElement('br'));
+    tip.appendChild(document.createTextNode(MK[Y].l + ': ' + withUnit(d[Y], Y)));
+    tip.classList.add('on');
+  });
+  plot.addEventListener('mousemove', function (e) {
+    if (!tip.classList.contains('on')) return;
+    var r = wrap.getBoundingClientRect(), x = e.clientX - r.left + 14, y = e.clientY - r.top + 14;
+    if (x + 230 > r.width) x = e.clientX - r.left - 234;
+    tip.style.left = Math.max(0, x) + 'px'; tip.style.top = y + 'px';
+  });
+  plot.addEventListener('mouseout', function (e) { if (e.target.getAttribute && e.target.getAttribute('data-i') != null) tip.classList.remove('on'); });
+  plot.addEventListener('click', function (e) { var i = e.target.getAttribute && e.target.getAttribute('data-i'); if (i != null) select(+i); });
+
+  /* Axis selects */
+  [['xSel', 'x'], ['ySel', 'y'], ['rankSel', 'r']].forEach(function (p) {
+    var s = $(p[0]);
+    METRICS.forEach(function (m) { var o = el('option', null, m.l); o.value = m.k; s.appendChild(o); });
+    s.value = p[1] === 'x' ? X : p[1] === 'y' ? Y : RK;
+    s.addEventListener('change', function () {
+      if (p[1] === 'x') X = s.value; else if (p[1] === 'y') Y = s.value; else RK = s.value;
+      if (p[1] === 'r') updateRank(); else { drawAxes(); updatePoints(); updateMeans(); }
+    });
+  });
+
+  /* ---------- Rank ---------- */
+  var rankBox = $('rank'), rankRows = [];
+  for (var r = 0; r < 5; r++) (function () {
+    var b = el('button', 'rrow'); b.type = 'button';
+    var n = el('span', 'rname'), nb = el('b'), np = el('i'); n.appendChild(nb); n.appendChild(np);
+    var v = el('span', 'rval'), t = el('span', 'rtrack'), bar = el('span', 'rbar'); t.appendChild(bar);
+    b.appendChild(n); b.appendChild(v); b.appendChild(t);
+    b.addEventListener('click', function () { if (b.dataset.i != null) select(+b.dataset.i); });
+    rankBox.appendChild(b); rankRows.push({ el: b, name: nb, prep: np, val: v, bar: bar });
+  })();
+  function updateRank() {
+    var k = RK, arr = list.filter(function (d) { return isNum(d[k]); });
+    arr.sort(RDIR === 'high' ? function (a, b) { return b[k] - a[k]; } : function (a, b) { return a[k] - b[k]; });
+    $('rankTitle').textContent = (RDIR === 'high' ? 'Highest' : 'Lowest') + ' in ' + MK[k].l.toLowerCase();
+    $('rankEmpty').hidden = arr.length > 0;
+    for (var i = 0; i < 5; i++) {
+      var row = rankRows[i], d = arr[i];
+      if (!d) { row.el.hidden = true; delete row.el.dataset.i; continue; }
+      row.el.hidden = false; row.el.dataset.i = d.i;
+      row.name.textContent = d.beverage || 'Drink';
+      row.prep.textContent = [d.prep, d.category].filter(Boolean).join(', ');
+      row.val.textContent = withUnit(d[k], k);
+      row.bar.style.transform = 'scaleX(' + Math.max(S[k].max > 0 ? d[k] / S[k].max : 0, 0.012) + ')';
+      row.bar.style.background = colorOf(d);
+      if (d.i === sel) row.el.setAttribute('aria-current', 'true'); else row.el.removeAttribute('aria-current');
+    }
+  }
+  $('hi').addEventListener('click', function () { RDIR = 'high'; $('hi').setAttribute('aria-pressed', 'true'); $('lo').setAttribute('aria-pressed', 'false'); updateRank(); });
+  $('lo').addEventListener('click', function () { RDIR = 'low'; $('lo').setAttribute('aria-pressed', 'true'); $('hi').setAttribute('aria-pressed', 'false'); updateRank(); });
+
+  /* ---------- Mix by category ---------- */
+  var mixBox = $('mix'), mixRows = {}, mixMax = 1;
+  (function () {
+    var acc = {};
+    D.forEach(function (d) { var c = d.category; if (c == null) return; var a = acc[c] || (acc[c] = { n: 0, t: 0 }); a.n++; a.t += (d.carbs || 0) + (d.totalFat || 0) + (d.protein || 0); });
+    for (var c in acc) mixMax = Math.max(mixMax, acc[c].t / acc[c].n);
+  })();
+  catNames.forEach(function (c) {
+    var b = el('button', 'mrow'); b.type = 'button'; b.dataset.name = c;
+    var nm = el('span', 'mname'), dot = el('i'), tx = el('span', null, c); dot.style.background = COL[c]; nm.appendChild(dot); nm.appendChild(tx);
+    var st = el('span', 'stack'), sc = el('span'), sf = el('span'), sp = el('span');
+    sc.style.background = 'var(--carb)'; sf.style.background = 'var(--fat)'; sp.style.background = 'var(--prot)';
+    st.appendChild(sc); st.appendChild(sf); st.appendChild(sp);
+    var v = el('span', 'mval');
+    b.appendChild(nm); b.appendChild(st); b.appendChild(v);
+    b.addEventListener('click', function () {
+      var only = anyKey(F.cats) && F.cats[c] && Object.keys(F.cats).length === 1;
+      F.cats = {}; if (!only) F.cats[c] = true;
+      syncChips(); refresh();
+    });
+    mixBox.appendChild(b); mixRows[c] = { el: b, c: sc, f: sf, p: sp, v: v, t: tx };
+  });
+  function updateMix() {
+    var acc = {}, any = false;
+    list.forEach(function (d) {
+      var c = d.category; if (c == null) return;
+      var a = acc[c] || (acc[c] = { n: 0, c: 0, f: 0, p: 0, k: 0, kn: 0 });
+      a.n++; a.c += d.carbs || 0; a.f += d.totalFat || 0; a.p += d.protein || 0;
+      if (isNum(d.calories)) { a.k += d.calories; a.kn++; }
+    });
+    catNames.forEach(function (c) {
+      var row = mixRows[c], a = acc[c];
+      if (!a) { row.el.hidden = true; return; }
+      any = true; row.el.hidden = false;
+      var C = a.c / a.n, Fa = a.f / a.n, P = a.p / a.n;
+      row.c.style.width = (C / mixMax * 100) + '%'; row.f.style.width = (Fa / mixMax * 100) + '%'; row.p.style.width = (P / mixMax * 100) + '%';
+      row.v.textContent = a.kn ? Math.round(a.k / a.kn) + ' kcal' : '';
+      row.el.title = c + ' (' + a.n + ' drinks): carbs ' + C.toFixed(1) + ' g, fat ' + Fa.toFixed(1) + ' g, protein ' + P.toFixed(1) + ' g';
+    });
+    $('mixEmpty').hidden = any;
+  }
+
+  /* ---------- Detail card ---------- */
+  var CUP = { bottom: 184, inner: 146 };
+  var maxMacro = 1;
+  D.forEach(function (d) { maxMacro = Math.max(maxMacro, (d.carbs || 0) + (d.totalFat || 0) + (d.protein || 0)); });
+  var VIT = [['vitA', 'Vitamin A'], ['vitC', 'Vitamin C'], ['calcium', 'Calcium'], ['iron', 'Iron']].filter(function (v) { return MK[v[0]]; });
+  var STAT = [['sugars', 'Sugars'], ['totalFat', 'Total fat'], ['transFat', 'Trans fat'], ['sodium', 'Sodium']].filter(function (v) { return MK[v[0]]; });
+  var vitEls = {}, statEls = {};
+  VIT.forEach(function (v) {
+    var box = el('div', 'meter'); box.style.margin = '0';
+    var head = el('div', 'meter-head'), a = el('span', null, v[1]), b = el('b');
+    head.appendChild(a); head.appendChild(b);
+    var tr = el('div', 'track'), fl = el('span', 'fill'); tr.appendChild(fl);
+    box.appendChild(head); box.appendChild(tr); $('vits').appendChild(box); vitEls[v[0]] = { val: b, fill: fl };
+  });
+  if (!VIT.length) $('vits').hidden = true;
+  STAT.forEach(function (v) {
+    var box = el('div', 'stat'), a = el('span', null, v[1]), b = el('b'), c = el('em');
+    box.appendChild(a); box.appendChild(b); box.appendChild(c); $('stats').appendChild(box); statEls[v[0]] = { val: b, delta: c };
+  });
+  if (!STAT.length) $('stats').hidden = true;
+  if (!MK.caffeine) $('cafMeter').hidden = true;
+
+  function setLayer(id, top) { $(id).style.transform = 'translateY(' + top.toFixed(1) + 'px)'; }
+  function animateNumber(node, to) {
+    var from = parseFloat(node.dataset.v || '0') || 0; node.dataset.v = to;
+    if (reduce) { node.textContent = Math.round(to).toLocaleString('en-US'); return; }
+    var t0 = null, dur = 650;
+    function f(t) { if (t0 === null) t0 = t; var p = clamp((t - t0) / dur, 0, 1), e = 1 - Math.pow(1 - p, 3); node.textContent = Math.round(from + (to - from) * e).toLocaleString('en-US'); if (p < 1) requestAnimationFrame(f); }
+    requestAnimationFrame(f);
+  }
+  function renderDetail() {
+    var d = sel >= 0 ? D[sel] : null; if (!d) return;
+    $('dCat').textContent = [d.category, d.prep].filter(Boolean).join(', ');
+    $('dName').textContent = d.beverage || 'Drink';
+    $('dFlag').textContent = vis[sel] ? '' : 'Hidden by the current filters';
+    var kcal = isNum(d.calories) ? d.calories : 0;
+    animateNumber($('dCal'), kcal);
+    $('dPct').textContent = isNum(d.calories) ? Math.round(d.calories / 20) + '% of a 2,000 kcal day' : '';
+    var C = d.carbs || 0, Fa = d.totalFat || 0, P = d.protein || 0, tot = C + Fa + P;
+    var hT = clamp(tot / maxMacro, 0, 1) * CUP.inner;
+    var hC = tot ? hT * C / tot : 0, hF = tot ? hT * Fa / tot : 0, hP = tot ? hT * P / tot : 0;
+    var tC = CUP.bottom - hC, tF = tC - hF, tP = tF - hP;
+    setLayer('layC', tC); setLayer('layF', tF); setLayer('layP', tP);
+    $('lgC').textContent = fmt(C, 'carbs') + ' g'; $('lgF').textContent = fmt(Fa, 'totalFat') + ' g'; $('lgP').textContent = fmt(P, 'protein') + ' g';
+    if (MK.caffeine) {
+      var cf = d.caffeine;
+      $('cafVal').textContent = isNum(cf) ? fmt(cf, 'caffeine') + ' mg' : 'n/a';
+      $('cafFill').style.transform = 'scaleX(' + (isNum(cf) ? clamp(cf / 400, 0, 1) : 0) + ')';
+      $('cafNote').textContent = isNum(cf) ? Math.round(cf / 4) + '% of the 400 mg daily guideline' : '';
+    }
+    VIT.forEach(function (v) {
+      var x = d[v[0]]; vitEls[v[0]].val.textContent = isNum(x) ? fmt(x, v[0]) + '%' : 'n/a';
+      vitEls[v[0]].fill.style.transform = 'scaleX(' + (isNum(x) ? clamp(x / 100, 0, 1) : 0) + ')';
+    });
+    STAT.forEach(function (v) {
+      var k = v[0], x = d[k], s = statEls[k], sum = 0, n = 0;
+      list.forEach(function (o) { if (isNum(o[k])) { sum += o[k]; n++; } });
+      s.val.textContent = withUnit(x, k);
+      var avg = n ? sum / n : 0;
+      if (!isNum(x) || avg <= 0) { s.delta.textContent = ''; return; }
+      var dl = Math.round((x - avg) / avg * 100);
+      s.delta.textContent = Math.abs(dl) < 1 ? 'about average' : (dl > 0 ? '\u25B2 ' : '\u25BC ') + Math.abs(dl) + '% vs average shown';
+    });
+  }
+
+  function select(i, quiet) {
+    sel = i; placeSel(); renderDetail(); updateRank();
+    if (!quiet) pulseSel();
+  }
+  function step(dir) {
+    if (!list.length) return;
+    var order = list.filter(function (d) { return isNum(d[X]); }).sort(function (a, b) { return a[X] - b[X] || a.i - b.i; });
+    var at = -1; order.forEach(function (d, n) { if (d.i === sel) at = n; });
+    var nx = at < 0 ? 0 : (at + dir + order.length) % order.length;
+    select(order[nx].i);
+  }
+  $('prevBtn').addEventListener('click', function () { step(-1); });
+  $('nextBtn').addEventListener('click', function () { step(1); });
+  $('rndBtn').addEventListener('click', function () {
+    if (!list.length) return;
+    var pick = list[Math.floor(Math.random() * list.length)]; select(pick.i);
+  });
+
+  /* ---------- Refresh ---------- */
+  function refresh() {
+    list = [];
+    for (var i = 0; i < N; i++) { vis[i] = passes(D[i]); if (vis[i]) list.push(D[i]); }
+    var c = $('count'); animateNumber(c, list.length);
+    updatePoints(); updateMeans(); updateRank(); updateMix(); syncChips();
+    if (sel >= 0) renderDetail();
+    $('prevBtn').disabled = $('nextBtn').disabled = $('rndBtn').disabled = list.length === 0;
+  }
+
+  /* ---------- Start ---------- */
+  var first = 0, best = -Infinity, startKey = MK.caffeine ? 'caffeine' : X;
+  D.forEach(function (d) { if (isNum(d[startKey]) && d[startKey] > best) { best = d[startKey]; first = d.i; } });
+  for (var i0 = 0; i0 < N; i0++) vis[i0] = true;
+  list = D.slice();
+  drawAxes();
+  // initial placement above their final spot, hidden
+  pts.forEach(function (p, i) {
+    var d = D[i]; if (isNum(d[X]) && isNum(d[Y])) p.style.transform = 'translate(' + sx(d[X]).toFixed(1) + 'px,' + (sy(d[Y]) - 34).toFixed(1) + 'px)';
+  });
+  $('count').dataset.v = 0;
+
+  function intro() {
+    root.classList.add('ready');
+    pts.forEach(function (p, i) {
+      var d = D[i]; if (!(isNum(d[X]) && isNum(d[Y]))) return;
+      p.style.transitionDelay = reduce ? '0s' : ((sx(d[X]) / W) * 0.7).toFixed(2) + 's';
+    });
+    refresh();
+    pts.forEach(function (p) { p.classList.remove('pre'); });
+    select(first, true);
+    setTimeout(function () { pts.forEach(function (p) { p.style.transitionDelay = ''; }); }, reduce ? 0 : 2200);
+  }
+  requestAnimationFrame(function () { requestAnimationFrame(intro); });
+})();
+</script>
+</body>
+</html>
